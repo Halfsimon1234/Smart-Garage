@@ -1,5 +1,6 @@
 #include <WebServer.h>
 #include "esp_camera.h"
+#include "server.h"
 
 WebServer server(80);
 
