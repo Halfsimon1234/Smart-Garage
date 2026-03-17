@@ -1,88 +1,43 @@
 import cv2
 import easyocr
-import re
-from collections import Counter
+import numpy as np
 
-VIDEO_PATH = "assets/Kennzeichen_Test.mp4"
+# Reader einmal global laden (dauert beim ersten Mal ~10 Sekunden)
+_reader = None
 
-reader = easyocr.Reader(['de', 'en'])
-cap = cv2.VideoCapture(VIDEO_PATH)
+def get_reader() -> easyocr.Reader:
+    global _reader
+    if _reader is None:
+        print("Lade EasyOCR Modell...")
+        _reader = easyocr.Reader(['de', 'en'], gpu=False)
+        print("Modell geladen.")
+    return _reader
 
-frame_id = 0
-detected_plates = []
+def preprocess(img: np.ndarray) -> np.ndarray:
+    """Bild für bessere Kennzeichenerkennung vorbereiten."""
+    # Hochskalieren (Kennzeichen sind oft klein im Bild)
+    scale = 2.0
+    img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    # Graustufen
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Kontrast erhöhen
+    gray = cv2.equalizeHist(gray)
+    # Binärisierung (Otsu wählt automatisch den besten Schwellwert)
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return binary
 
-def clean(text):
-    return "".join([c.upper() for c in text if c.isalnum()])
+def run_ocr(img: np.ndarray, confidence_threshold: float = 0.4) -> list[str]:
+    """
+    OCR auf einem Bild ausführen.
+    Gibt nur Ergebnisse zurück die über dem Confidence-Schwellwert liegen.
+    """
+    processed = preprocess(img)
+    reader = get_reader()
+    results = reader.readtext(processed)
 
-def extract_plate(fragments):
-    letters = ""
-    numbers = ""    
+    texts = []
+    for _box, text, confidence in results:
+        if confidence >= confidence_threshold:
+            texts.append(text)
 
-    for f in fragments:
-        # nur Buchstaben
-        if f.isalpha():
-            letters += f
-        # nur Zahlen
-        elif f.isdigit():
-            numbers += f
-        else:
-            # gemischt → trennen
-            for c in f:
-                if c.isalpha():
-                    letters += c
-                elif c.isdigit():
-                    numbers += c
-
-    # Plate = LETTERS + NUMBERS
-    plate = letters + numbers
-
-    # Mindestanforderung: mind. 1 Buchstabe + 2 Zahlen
-    if re.match(r"^[A-Z]+[0-9]{2,}$", plate):
-        return plate
-    return None
-
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    frame_id += 1
-    if frame_id % 10 != 0:
-        continue
-
-    results = reader.readtext(frame)
-
-    fragments = []
-    for box, text, conf in results:
-        cleaned = clean(text)
-        if len(cleaned) >= 2:
-            fragments.append(cleaned)
-
-    plate = extract_plate(fragments)
-    if plate:
-        detected_plates.append(plate)
-
-cap.release()
-
-# ---------- FINAL RESULT ----------
-if detected_plates:
-    final_plate = Counter(detected_plates).most_common(1)[0][0]
-    print("\n============================")
-    print("   FINAL KENNZEICHEN:")
-    print("   ➡", final_plate)
-    print("============================\n")
-else:
-    print("❌ Kein Kennzeichen erkannt")
-
-
-Whitelist = [
-    "BRJN9120"
-    "BRJN910"  
-]
-
-if final_plate == Whitelist:
-    print("asdf")
-
-
-
- 
+    return texts
