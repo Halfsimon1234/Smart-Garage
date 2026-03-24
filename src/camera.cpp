@@ -1,8 +1,8 @@
-#include "../include/camera.h"
-#include "../include/config.h"
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include "../include/camera.h"
+#include "../include/config.h"
 
 // Pin-Definitionen für AI-Thinker ESP32-CAM
 #define PWDN_GPIO_NUM     32

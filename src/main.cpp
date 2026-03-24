@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "../include/config.h"
-#include "../include/wifi.h"
+#include "../include/dominik.h"
 #include "../include/camera.h"
 #include "../include/gate.h"
 
@@ -24,7 +24,8 @@ bool detect_motion(camera_fb_t* current) {
     int changed_pixels = 0;
     for (size_t i = 0; i < current->len; i++) {
         int diff = abs((int)current->buf[i] - (int)prev_frame[i]);
-        if (diff > MOTION_THRESHOLD) {
+        if (diff > MOTION_THRESHOLD) 
+        {
             changed_pixels++;
         }
     }

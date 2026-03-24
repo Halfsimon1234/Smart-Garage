@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include "../include/wifi.h"
+#include <WiFiType.h>
+#include "../include/dominik.h"
 #include "../include/config.h"
 
-void wifi_connect() {
+void wifi_connect() 
+{
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     
     Serial.print("Verbinde mit WLAN");
